@@ -1,6 +1,8 @@
 import pygame as pg
 #import chessdotcom
 import chess
+import chess.pgn
+import random
 
 def cr2xy(cr, flipped):
   if flipped:
@@ -60,6 +62,10 @@ def drawPieces(p, flipped=False):
   for cr, piece in p.items():
     screen.blit(PIECES[piece], cr2xy(cr, flipped))
 
+def nextRandomMove(game):
+  vars = game.variations
+  return vars[random.randint(0,len(vars) - 1)]
+  
 pg.init()
 WIDTH, HEIGHT = 800, 800
 FIELD = WIDTH // 8
@@ -67,19 +73,25 @@ FPS = 40
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 BOARD_COLORS = {(r,c): r % 2 == c % 2 for r in range(8) for c in range(8)}
 PIECES = loadPieces()
-board = chess.Board()
+
+pgn = open('black.pgn')
+game = chess.pgn.read_game(pgn)
+board = game.board()
+game = nextRandomMove(game)
+board = game.board()
+
 position = fen2position(board.board_fen())
 drag = None
 flipped = True
 
-go_on = True
+running = True
 clock = pg.time.Clock()
 
-while go_on:
+while running:
   clock.tick(FPS)
   for event in pg.event.get():
     if event.type == pg.QUIT:
-      go_on = False
+      running = False
     
     elif event.type == pg.MOUSEBUTTONDOWN and not drag:
       
@@ -98,8 +110,21 @@ while go_on:
         uci = cr2uci(from_pos) + cr2uci(to_pos)
         move = chess.Move.from_uci(uci)
 
-        if board.is_legal(move):
-          board.push(move)
+        if (board.is_legal(move) and
+            (move in [var.move for var in game.variations])):
+          game = game.variation(move)
+          board = game.board()
+
+          if game.is_end():
+            game = game.game()
+            board = game.board()
+          
+          game = nextRandomMove(game)
+          board = game.board()
+
+          if game.is_end():
+            game = game.game()
+            board = game.board()
 
       position = fen2position(board.board_fen())
         
