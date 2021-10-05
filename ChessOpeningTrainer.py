@@ -16,6 +16,12 @@ def xy2cr(xy, flipped):
   else:
     return xy[0] // FIELD, xy[1] // FIELD
 
+def square2xy(square, flipped):
+  if flipped:
+    return (7-chess.square_file(square))*FIELD, (chess.square_rank(square))*FIELD
+  else:
+    return (chess.square_file(square))*FIELD, (7-chess.square_rank(square))*FIELD
+
 def cr2square(cr):
   return chess.square(file_index=cr[0], rank_index=7-cr[1])
 
@@ -28,10 +34,10 @@ def cr2uci(cr):
 def uci2cr(uci):
   return chess.FILE_NAMES.index(uci[0]), 7-chess.RANK_NAMES.index(uci[1])
 
-def drawBoard(BOARD_COLORS):
-  for cr, field in BOARD_COLORS.items():
-    color = '#DFBF93' if field else '#C5844E'
-    pg.draw.rect(screen, color, (*cr2xy(cr, flipped), FIELD, FIELD))
+def drawBoard():
+  for square in chess.SQUARES:
+    color = '#C5844E' if chess.square_file(square) % 2 == chess.square_rank(square) % 2 else '#DFBF93'
+    pg.draw.rect(screen, color, (*square2xy(square, flipped), FIELD, FIELD))
 
 def fen2position(board_fen):
   position, c, r = {}, 0, 0
@@ -71,7 +77,6 @@ WIDTH, HEIGHT = 800, 800
 FIELD = WIDTH // 8
 FPS = 40
 screen = pg.display.set_mode((WIDTH, HEIGHT))
-BOARD_COLORS = {(r,c): r % 2 == c % 2 for r in range(8) for c in range(8)}
 PIECES = loadPieces()
 
 pgn = open('black.pgn')
@@ -124,13 +129,14 @@ while running:
 
           if game.is_end():
             game = game.game()
+            game = nextRandomMove(game)
             board = game.board()
 
       position = fen2position(board.board_fen())
         
   screen.fill((0,0,0))
   
-  drawBoard(BOARD_COLORS)
+  drawBoard()
   drawPieces(position, flipped)
 
   if drag:
